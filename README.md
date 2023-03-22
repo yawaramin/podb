@@ -104,9 +104,9 @@ sqlite> select * from po;
 As I mentioned earlier, you need to create the language callbacks beforehand:
 
 ```python
-fr = po_db.of_lang('fr')
-it = po_db.of_lang('it')
-ja = po_db.of_lang('ja') # and so on
+fr = po_db.lang('fr')
+it = po_db.lang('it')
+ja = po_db.lang('ja') # and so on
 ```
 
 This is because the database needs to be updated to handle the languages that
@@ -118,9 +118,9 @@ server framework, you can write a middleware like:
 ```python
 class AcceptLanguage(Middleware):
     def __init__(self, po_db: Podb):
-        self.lang_fr = po_db.of_lang('fr')
-        self.lang_it = po_db.of_lang('it')
-        self.lang_ja = po_db.of_lang('ja')
+        self.lang_fr = po_db.lang('fr')
+        self.lang_it = po_db.lang('it')
+        self.lang_ja = po_db.lang('ja')
 
     # Simplified
     def handle(req: Request) -> Response:
