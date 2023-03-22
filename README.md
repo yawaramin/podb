@@ -34,8 +34,8 @@ formats. The workflow should look like:
 from podb import Podb
 
 def main(po_db: Podb):
-    fr = po_db.of_lang('fr') # Important–need to know what languages you need
-    it = po_db.of_lang('it')
+    fr = po_db.lang('fr') # Important–need to know what languages you need
+    it = po_db.lang('it')
 
     print('hello in French', fr('hello'))
     print('hello in Italian', it('hello'))
