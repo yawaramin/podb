@@ -37,8 +37,8 @@ def main(po_db: Podb):
     fr = po_db.lang('fr') # Important–need to know what languages you need
     it = po_db.lang('it')
 
-    print('hello in French', fr('hello'))
-    print('hello in Italian', it('hello'))
+    print('hello in French:', fr('hello'))
+    print('hello in Italian:', it('hello'))
 
 if __name__ == '__main__':
     # Using a context manager because it opens and closes DB
@@ -49,8 +49,8 @@ if __name__ == '__main__':
 You will get this output:
 
 ```
-hello in French 🔴
-hello in Italian 🔴
+hello in French: 🔴
+hello in Italian: 🔴
 ```
 
 (The `🔴` emoji is used as a strong visual indicator that the translation is
@@ -78,8 +78,8 @@ all the filled-in entries from the files and upsert them into the database. The
 script will output:
 
 ```
-hello in French bonjour
-hello in Italian bonguorno
+hello in French: bonjour
+hello in Italian: bonguorno
 ```
 
 The manual part of this is reduced to:

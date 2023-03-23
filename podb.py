@@ -92,10 +92,13 @@ class Podb:
 
         WARNING: don't call this with untrusted user input as it can lead to SQL
         injection. Make sure you call it only with statically-known strings.
+
+        Assumption: the base language for all translations is called 'en'.
         '''
-        if lang != 'en':
-            self.langs.append(lang)
-            self._check_lang(lang)
+        if lang == 'en': return Lang('en', lambda msgid, xcomment, ref: msgid)
+
+        self.langs.append(lang)
+        self._check_lang(lang)
 
         backup_lang = lang.split('_')[0] if '_' in lang else None
         msgstr = _msgstr(lang)
@@ -118,15 +121,15 @@ class Podb:
         return Lang(lang, get_msgstr)
 
     def _check_lang(self, lang: str):
-        if self.db.execute(HAS_LANG, (lang,)).fetchone()[0] == 0:
+        if self.db.execute(HAS_LANG, (lang,)).fetchone() == (0,):
             self.db.executescript(_add_lang(lang))
             self.db.commit()
 
     def _write_pos(self):
         for lang in self.langs:
             with open(lang + '.po', 'w') as lang_po:
-                for entry in self.db.execute(_po(lang)).fetchall():
-                    lang_po.write(entry[0])
+                for (entry,) in self.db.execute(_po(lang)).fetchall():
+                    lang_po.write(entry)
 
     def _read_pos(self):
         for file in os.listdir():
