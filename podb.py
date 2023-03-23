@@ -1,11 +1,11 @@
 import functools
 import os
 from os import path
+from types import TracebackType
 import polib
 import sqlite3
-from typing import Callable
+from typing import Callable, Optional, Type
 
-MISSING = '🔴'
 CREATE = '''create table if not exists po (
     updated_at timestamp not null default current_timestamp,
     ref text,
@@ -64,24 +64,29 @@ class Lang:
         return self.get_msgstr(msgid, xcomment, ref)
 
 class Podb:
-    def __init__(self, workdir: str='po', filename: str='po.db'):
+    def __init__(self, workdir: str='po', filename: str='po.db', missing: str='🇺🇸 '):
         self._wd = workdir
         self._filename = filename
+        self._missing = missing
         self._langs: list[str] = []
 
     def __enter__(self):
-        self.db = sqlite3.connect(path.join(self._wd, self._filename))
-        self.db.execute(CREATE)
+        self._db = sqlite3.connect(path.join(self._wd, self._filename))
+        self._db.execute(CREATE)
         self._read_pos()
 
         return self
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
+    def __exit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_val: Optional[BaseException],
+        exc_tb: Optional[TracebackType]) -> Optional[bool]:
         self._close()
 
     def _close(self):
         self._write_pos()
-        self.db.close()
+        self._db.close()
 
     @functools.cache
     def lang(self, lang: str) -> Lang:
@@ -105,25 +110,25 @@ class Podb:
         msgstr = _msgstr(lang)
 
         def get_msgstr(msgid: str, xcomment: str, ref: str) -> str:
-            row = self.db.execute(msgstr, (msgid, xcomment)).fetchone()
+            row = self._db.execute(msgstr, (msgid, xcomment)).fetchone()
 
             if row is None:
-                self.db.execute(ADD_ENTRY, (ref, xcomment, msgid))
-                self.db.commit()
+                self._db.execute(ADD_ENTRY, (ref, xcomment, msgid))
+                self._db.commit()
 
-                return MISSING if backup_lang is None else self.lang(backup_lang)(msgid, xcomment, ref)
+                return self._missing + msgid if backup_lang is None else self.lang(backup_lang)(msgid, xcomment, ref)
 
             if row[0] is None:
-                return MISSING if backup_lang is None else self.lang(backup_lang)(msgid, xcomment, ref)
+                return self._missing + msgid if backup_lang is None else self.lang(backup_lang)(msgid, xcomment, ref)
 
             return row[0]
 
         return Lang(lang, get_msgstr)
 
     def _check_lang(self, lang: str):
-        if self.db.execute(HAS_LANG, (lang,)).fetchone() == (0,):
-            self.db.executescript(_add_lang(lang))
-            self.db.commit()
+        if self._db.execute(HAS_LANG, (lang,)).fetchone() == (0,):
+            self._db.executescript(_add_lang(lang))
+            self._db.commit()
 
     def _write_pos(self):
         for lang in self._langs:
@@ -138,7 +143,7 @@ msgstr ""
 "Language: {lang}\\n"
 ''')
 
-                for (entry,) in self.db.execute(_po(lang)).fetchall():
+                for (entry,) in self._db.execute(_po(lang)).fetchall():
                     lang_po.write(entry)
 
     def _read_pos(self):
@@ -154,8 +159,8 @@ msgstr ""
                     msgstr = entry.msgstr
                     if msgstr == '': continue
 
-                    self.db.execute(
+                    self._db.execute(
                         upsert,
                         (entry.comment, entry.msgid, msgstr))
 
-        self.db.commit()
+        self._db.commit()
