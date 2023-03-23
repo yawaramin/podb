@@ -128,6 +128,16 @@ class Podb:
     def _write_pos(self):
         for lang in self.langs:
             with open(lang + '.po', 'w') as lang_po:
+                lang_po.write(f'''msgid ""
+msgstr ""
+"MIME-Version: 1.0\\n"
+"Content-Type: text/plain; charset=UTF-8\\n"
+"Content-Transfer-Encoding: 8bit\\n"
+"X-Generator: https://github.com/yawaramin/podb\\n"
+"Project-Id-Version: {__name__}\\n"
+"Language: {lang}\\n"
+''')
+
                 for (entry,) in self.db.execute(_po(lang)).fetchall():
                     lang_po.write(entry)
 
@@ -139,8 +149,7 @@ class Podb:
 
                 for entry in po:
                     msgstr = entry.msgstr
-                    if msgstr == '':
-                        msgstr = None
+                    if msgstr == '': continue
 
                     self.db.execute(
                         _upsert(lang),
