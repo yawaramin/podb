@@ -134,8 +134,10 @@ class Podb:
     def _read_pos(self):
         for file in os.listdir():
             if file.endswith('.po'):
-                lang = file[:-3]
-                for entry in polib.pofile(file):
+                po = polib.pofile(file)
+                lang = po.metadata['Language'] if 'Language' in po.metadata else file[:-3]
+
+                for entry in po:
                     msgstr = entry.msgstr
                     if msgstr == '':
                         msgstr = None
