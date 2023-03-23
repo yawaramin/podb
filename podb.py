@@ -65,12 +65,12 @@ class Lang:
 
 class Podb:
     def __init__(self, workdir: str='po', filename: str='po.db'):
-        self.wd = workdir
-        self.filename = filename
-        self.langs: list[str] = []
+        self._wd = workdir
+        self._filename = filename
+        self._langs: list[str] = []
 
     def __enter__(self):
-        self.db = sqlite3.connect(path.join(self.wd, self.filename))
+        self.db = sqlite3.connect(path.join(self._wd, self._filename))
         self.db.execute(CREATE)
         self._read_pos()
 
@@ -97,7 +97,7 @@ class Podb:
         '''
         if lang == 'en': return Lang('en', lambda msgid, xcomment, ref: msgid)
 
-        self.langs.append(lang)
+        self._langs.append(lang)
         self._check_lang(lang)
 
         # E.g. en_GB backup is en
@@ -126,8 +126,8 @@ class Podb:
             self.db.commit()
 
     def _write_pos(self):
-        for lang in self.langs:
-            with open(path.join(self.wd, lang + '.po'), 'w') as lang_po:
+        for lang in self._langs:
+            with open(path.join(self._wd, lang + '.po'), 'w') as lang_po:
                 lang_po.write(f'''msgid ""
 msgstr ""
 "MIME-Version: 1.0\\n"
@@ -142,9 +142,9 @@ msgstr ""
                     lang_po.write(entry)
 
     def _read_pos(self):
-        for file in os.listdir(self.wd):
+        for file in os.listdir(self._wd):
             if file.endswith('.po'):
-                po = polib.pofile(path.join(self.wd, file))
+                po = polib.pofile(path.join(self._wd, file))
                 lang = po.metadata['Language'] if 'Language' in po.metadata else file[:-3]
 
                 for entry in po:
