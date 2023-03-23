@@ -42,7 +42,8 @@ def main(po_db: Podb):
 
 if __name__ == '__main__':
     # Using a context manager because it opens and closes DB
-    with Podb('po.db') as po_db:
+    # Using current directory for files to simplify
+    with Podb(workdir='.') as po_db:
         main(po_db)
 ```
 
@@ -61,7 +62,7 @@ missing.)
 After the script exits, you will find the following files in the working
 directory:
 
-- `po.db`: this is the filename you passed in to the `Podb()` constructor. It's
+- `po.db`: this is the default filename used unless you pass in an override. It's
   the SQLite database created automatically to hold all the translations if it
   doesn't exist already. This is the source of truth for the translations in
   your project and you can commit this file in the repo as part of the

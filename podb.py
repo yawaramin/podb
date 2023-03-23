@@ -1,5 +1,6 @@
 import functools
 import os
+from os import path
 import polib
 import sqlite3
 from typing import Callable
@@ -44,13 +45,10 @@ msgstr ""
 commit;'''
 
 def _msgstr(lang: str) -> str:
-    return f'''select {lang}
-from po
-where en = ?
-and xcomment = ?'''
+    return f'select {lang} from po where en = ?  and xcomment = ?'
 
 def _po(lang: str) -> str:
-    return f'''select entry from {lang}_po'''
+    return f'select entry from {lang}_po'
 
 def _upsert(lang: str) -> str:
     return f'''insert into po (updated_at, xcomment, en, {lang})
@@ -66,12 +64,13 @@ class Lang:
         return self.get_msgstr(msgid, xcomment, ref)
 
 class Podb:
-    def __init__(self, filename: str):
+    def __init__(self, workdir: str='po', filename: str='po.db'):
+        self.wd = workdir
         self.filename = filename
         self.langs: list[str] = []
 
     def __enter__(self):
-        self.db = sqlite3.connect(self.filename)
+        self.db = sqlite3.connect(path.join(self.wd, self.filename))
         self.db.execute(CREATE)
         self._read_pos()
 
@@ -88,7 +87,8 @@ class Podb:
     def lang(self, lang: str) -> Lang:
         '''
         Create and register a translator for a language `lang`. Should be
-        formatted as e.g. `en` or `en_US` (underscore).
+        formatted as e.g. `en` or `en_US` (underscore). Caches the `Lang`
+        instances so is safe to call multiple times for the same language.
 
         WARNING: don't call this with untrusted user input as it can lead to SQL
         injection. Make sure you call it only with statically-known strings.
@@ -100,12 +100,12 @@ class Podb:
         self.langs.append(lang)
         self._check_lang(lang)
 
+        # E.g. en_GB backup is en
         backup_lang = lang.split('_')[0] if '_' in lang else None
         msgstr = _msgstr(lang)
 
         def get_msgstr(msgid: str, xcomment: str, ref: str) -> str:
-            res = self.db.execute(msgstr, (msgid, xcomment))
-            row = res.fetchone()
+            row = self.db.execute(msgstr, (msgid, xcomment)).fetchone()
 
             if row is None:
                 self.db.execute(ADD_ENTRY, (ref, xcomment, msgid))
@@ -127,7 +127,7 @@ class Podb:
 
     def _write_pos(self):
         for lang in self.langs:
-            with open(lang + '.po', 'w') as lang_po:
+            with open(path.join(self.wd, lang + '.po'), 'w') as lang_po:
                 lang_po.write(f'''msgid ""
 msgstr ""
 "MIME-Version: 1.0\\n"
@@ -142,9 +142,9 @@ msgstr ""
                     lang_po.write(entry)
 
     def _read_pos(self):
-        for file in os.listdir():
+        for file in os.listdir(self.wd):
             if file.endswith('.po'):
-                po = polib.pofile(file)
+                po = polib.pofile(path.join(self.wd, file))
                 lang = po.metadata['Language'] if 'Language' in po.metadata else file[:-3]
 
                 for entry in po:

@@ -10,5 +10,5 @@ def main(po_db: Podb):
     print('meter in French:', fr('meter'))
 
 if __name__ == '__main__':
-    with Podb('po.db') as po_db:
+    with Podb() as po_db:
         main(po_db)
