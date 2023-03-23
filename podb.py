@@ -145,14 +145,17 @@ msgstr ""
         for file in os.listdir(self._wd):
             if file.endswith('.po'):
                 po = polib.pofile(path.join(self._wd, file))
-                lang = po.metadata['Language'] if 'Language' in po.metadata else file[:-3]
+                upsert = _upsert(
+                    po.metadata['Language']
+                    if 'Language' in po.metadata
+                    else file[:-3])
 
                 for entry in po:
                     msgstr = entry.msgstr
                     if msgstr == '': continue
 
                     self.db.execute(
-                        _upsert(lang),
+                        upsert,
                         (entry.comment, entry.msgid, msgstr))
 
         self.db.commit()
