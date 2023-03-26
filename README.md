@@ -34,8 +34,8 @@ formats. The workflow should look like:
 from podb import Podb
 
 def main(po_db: Podb):
-    fr = po_db.lang('fr') # Important–need to know what languages you need
-    it = po_db.lang('it')
+    fr = po_db.lang('fr') # Important–need to create language callbacks only from
+    it = po_db.lang('it') # statically known set of languages
 
     print('hello in French:', fr('hello'))
     print('hello in Italian:', it('hello'))
@@ -102,7 +102,8 @@ sqlite> select * from po;
 
 ## Languages
 
-As I mentioned earlier, you need to create the language callbacks beforehand:
+As I mentioned earlier, you need to create the language callbacks from a
+statically known set of languages only:
 
 ```python
 fr = po_db.lang('fr')
@@ -110,39 +111,74 @@ it = po_db.lang('it')
 ja = po_db.lang('ja') # and so on
 ```
 
-This is because the database needs to be updated to handle the languages that
-your app uses, before it starts using them.
+This is because the language names are injected directly into the database, so
+allowing users to set whatever language names they like can lead to embarrassing
+SQL injections.
 
-Of course, you can dynamically select the language e.g. suppose you use an HTTP
-server framework, you can write a middleware like:
+Of course, you can dynamically select the language e.g. with the Flask framework:
 
 ```python
-class AcceptLanguage(Middleware):
-    def __init__(self, po_db: Podb):
-        self.lang_fr = po_db.lang('fr')
-        self.lang_it = po_db.lang('it')
-        self.lang_ja = po_db.lang('ja')
+# app.py
 
-    # Simplified
-    def handle(req: Request) -> Response:
-        acceptLanguage = request.header('Accept-Language')
-        contentLanguage = acceptLanguage
+from typing import Optional
+from flask import Flask, g, render_template, request
+from podb import Podb
+import signal
+import sys
 
-        if acceptLanguage == 'fr': req.lang = lang_fr
-        elif acceptLanguage == 'it': req.lang = lang_it
-        elif acceptLanguage == 'ja': req.lang = lang_ja
-        else:
-            contentLanguage = 'en'
-            req.lang = lambda s: s # No translation
+# We don't have an entrypoint or blocking call that will keep the database open
+# in a context manager, so set up the database open/close manually:
 
-        res = self.next(req)
-        res.set_header('Content-Language', contentLanguage)
-    ...
+pos = Podb().__enter__()
 
-accept_language = AcceptLanguage(po_db)
-...
-@accept_language
-def get_stuff(req: Request) -> Response:
-    return Response(req.lang('Here's some stuff'))
+def shutdown(signum, frame):
+    pos._close()
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, shutdown)
+signal.signal(signal.SIGTERM, shutdown)
+
+app = Flask(__name__)
+
+# Statically-known set of language names
+languages = {'fr-CA', 'fr', 'it', 'en-GB'}
+
+@app.before_request
+def accept_language():
+    g.lang_name = request.accept_languages.best_match(languages, default='en')
+    # Important: construct language objects only from statically-known set of
+    # language names
+    g.lang = pos.lang(g.lang_name.replace('-', '_')) if g.lang_name in languages else pos.lang('en')
+
+@app.route('/hello/')
+@app.route('/hello/<name>')
+def hello(name: Optional[str]=None):
+    t = g.lang
+
+    return render_template(
+        'hello.html',
+        lang=g.lang_name,
+        name=name,
+        # Translations all done in the handler, variables containing translated
+        # strings passed into template.
+        hello_from=t('Hello from'),
+        hello=t('Hello'))
 ```
 
+```html
+<!-- templates/hello.html -->
+
+<!doctype html>
+<html lang="{{ lang }}">
+  <head>
+    <title>Hello</title>
+  </head>
+  <body>
+{% if name %}
+    {{ hello }}, {{ name }}!
+{% else %}
+    {{ hello_from }} Flask!
+{% endif %}
+  </body>
+</html>
+```

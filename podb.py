@@ -65,6 +65,11 @@ class Lang:
 
 class Podb:
     def __init__(self, workdir: str='po', filename: str='po.db', missing: str='🇺🇸 '):
+        '''
+        Create or open the PO database in working directory `workdir` with name
+        `filename`. For missing messages, translations will be returned prefixed
+        with the string `missing`.
+        '''
         self._wd = workdir
         self._filename = filename
         self._missing = missing
