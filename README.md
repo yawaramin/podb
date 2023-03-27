@@ -145,10 +145,11 @@ languages = {'fr-CA', 'fr', 'it', 'en-GB'}
 
 @app.before_request
 def accept_language():
-    g.lang_name = request.accept_languages.best_match(languages, default='en')
+    lang_name = request.accept_languages.best_match(languages, default='en')
     # Important: construct language objects only from statically-known set of
     # language names
-    g.lang = pos.lang(g.lang_name.replace('-', '_')) if g.lang_name in languages else pos.lang('en')
+    g.lang = pos.lang(lang_name.replace('-', '_')) if lang_name in languages else pos.lang('en')
+    g.lang_name = g.lang.id
 
 @app.route('/hello/')
 @app.route('/hello/<name>')
