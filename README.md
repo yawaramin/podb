@@ -115,7 +115,8 @@ This is because the language names are injected directly into the database, so
 allowing users to set whatever language names they like can lead to embarrassing
 SQL injections.
 
-Of course, you can dynamically select the language e.g. with the Flask framework:
+Of course, you can dynamically select the language from the statically-known set,
+e.g. here we are using the Flask framework:
 
 ```python
 # app.py
@@ -151,6 +152,11 @@ def accept_language():
     g.lang = pos.lang(lang_name.replace('-', '_')) if lang_name in languages else pos.lang('en')
     g.lang_name = g.lang.id
 
+@app.after_request
+def content_language(resp):
+    resp.content_language.add(g.lang_name)
+    return resp
+
 @app.route('/hello/')
 @app.route('/hello/<name>')
 def hello(name: Optional[str]=None):
@@ -165,6 +171,8 @@ def hello(name: Optional[str]=None):
         hello_from=t('Hello from'),
         hello=t('Hello'))
 ```
+
+And the template which will be rendered:
 
 ```html
 <!-- templates/hello.html -->
@@ -183,3 +191,59 @@ def hello(name: Optional[str]=None):
   </body>
 </html>
 ```
+
+Testing it out:
+
+```
+$ curl -i -H 'Accept-Language: fr' 'http://127.0.0.1:5000/hello/'
+HTTP/1.1 200 OK
+Server: Werkzeug/2.2.3 Python/3.9.6
+Date: Mon, 27 Mar 2023 02:23:34 GMT
+Content-Type: text/html; charset=utf-8
+Content-Length: 136
+Content-Language: fr
+Connection: close
+
+<!doctype html>
+<html lang="fr">
+  <head>
+    <title>Hello</title>
+  </head>
+  <body>
+
+    🇺🇸 Hello from Flask!
+
+  </body>
+</html>
+```
+
+Notice that the content negotiation is done by taking the `Accept-Language`
+header into account, and the response header `Content-Language` shows that the
+translation was done into the language `fr` (of course, in the beginning there is
+no translation so the English message is rendered, just with a US flag prefixed
+by default). If we ask for a language that's not supported:
+
+```
+$ curl -i -H 'Accept-Language: ja' 'http://127.0.0.1:5000/hello/'
+HTTP/1.1 200 OK
+Server: Werkzeug/2.2.3 Python/3.9.6
+Date: Mon, 27 Mar 2023 02:24:33 GMT
+Content-Type: text/html; charset=utf-8
+Content-Length: 127
+Content-Language: en
+Connection: close
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Hello</title>
+  </head>
+  <body>
+
+    Hello from Flask!
+
+  </body>
+</html>
+```
+
+We get back the default language which is `en`.
