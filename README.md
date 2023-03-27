@@ -150,7 +150,7 @@ def accept_language():
     # language names. The best_match method will return one of the languages in
     # the set.
     lang_name = request.accept_languages.best_match(languages, default='en')
-    g.lang = pos.lang(lang_name)
+    g.lang = pos.lang(lang_name) # Creating lazily and caching
     g.lang_name = lang_name
 
 @app.after_request

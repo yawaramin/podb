@@ -27,8 +27,7 @@ def _add_lang(id: str) -> str:
     Don't allow untrusted users to run this function. Make sure it's run only by
     internal tooling.
     '''
-    return f'''begin;
-    alter table po add column "{id}" text;
+    return f'''alter table po add column "{id}" text;
     create view "{id}_po" as
     select
         iif(xcomment = '', '', '
@@ -42,8 +41,7 @@ en ||
 msgstr ""
 ' as entry
     from po
-    where "{id}" is null;
-commit;'''
+    where "{id}" is null'''
 
 def _msgstr(lang: str) -> str:
     return f'select "{lang}" from po where en = ?  and xcomment = ?'
