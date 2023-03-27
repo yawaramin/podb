@@ -142,7 +142,7 @@ signal.signal(signal.SIGTERM, shutdown)
 app = Flask(__name__)
 
 # Statically-known set of language names
-languages = {'fr-CA', 'fr', 'it', 'en-GB'}
+languages = {'fr-CA', 'fr', 'it', 'en-GB', 'en'}
 
 @app.before_request
 def accept_language():
