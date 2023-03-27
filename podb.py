@@ -6,7 +6,8 @@ import polib
 import sqlite3
 from typing import Callable, Optional, Type
 
-CREATE = '''create table if not exists po (
+CREATE = '''pragma journal_mode=wal;
+create table if not exists po (
     updated_at timestamp not null default current_timestamp,
     ref text,
     xcomment text not null default '',
@@ -27,8 +28,8 @@ def _add_lang(id: str) -> str:
     internal tooling.
     '''
     return f'''begin;
-    alter table po add column {id} text;
-    create view {id}_po as
+    alter table po add column "{id}" text;
+    create view "{id}_po" as
     select
         iif(xcomment = '', '', '
 #. ' || xcomment) ||
@@ -41,19 +42,20 @@ en ||
 msgstr ""
 ' as entry
     from po
-    where {id} is null;
+    where "{id}" is null;
 commit;'''
 
 def _msgstr(lang: str) -> str:
-    return f'select {lang} from po where en = ?  and xcomment = ?'
+    return f'select "{lang}" from po where en = ?  and xcomment = ?'
 
 def _po(lang: str) -> str:
-    return f'select entry from {lang}_po'
+    return f'select entry from "{lang}_po"'
 
 def _upsert(lang: str) -> str:
-    return f'''insert into po (updated_at, xcomment, en, {lang})
+    return f'''insert into po (updated_at, xcomment, en, "{lang}")
 values (current_timestamp, ?, ?, ?)
-on conflict (en, xcomment) do update set {lang} = excluded.{lang}'''
+on conflict (en, xcomment) do update set {lang} = excluded."{lang}"
+'''
 
 class Lang:
     def __init__(self, id: str, get_msgstr: Callable[[str, str, str], str]):
@@ -76,8 +78,9 @@ class Podb:
         self._langs: list[str] = []
 
     def __enter__(self):
-        self._db = sqlite3.connect(path.join(self._wd, self._filename))
-        self._db.execute(CREATE)
+        sqlite3.threadsafety = 3
+        self._db = sqlite3.connect(path.join(self._wd, self._filename), check_same_thread=False)
+        self._db.executescript(CREATE)
         self._read_pos()
 
         return self
@@ -111,7 +114,7 @@ class Podb:
         self._check_lang(lang)
 
         # E.g. en_GB backup is en
-        backup_lang = lang.split('_')[0] if '_' in lang else None
+        backup_lang = lang.split('-')[0] if '-' in lang else None
         msgstr = _msgstr(lang)
 
         def get_msgstr(msgid: str, xcomment: str, ref: str) -> str:
