@@ -187,8 +187,8 @@ And the template which will be rendered:
     <p>
 {%- if name -%}
     {{ hello }}, {{ name }}!
-{%- else %}
-    {{- hello_from }} Flask!
+{%- else -%}
+    {{ hello_from }} Flask!
 {%- endif -%}
     </p>
   </body>
