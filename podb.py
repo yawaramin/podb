@@ -145,7 +145,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\\n"
 "Content-Transfer-Encoding: 8bit\\n"
 "X-Generator: https://github.com/yawaramin/podb\\n"
-"Project-Id-Version: {__name__}\\n"
+"Project-Id-Version: {self._filename}\\n"
 "Language: {lang}\\n"
 ''')
 

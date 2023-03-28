@@ -213,9 +213,7 @@ Connection: close
     <title>Hello</title>
   </head>
   <body>
-
-    🇺🇸 Hello from Flask!
-
+    <p>🇺🇸 Hello from Flask!</p>
   </body>
 </html>
 ```
@@ -242,11 +240,9 @@ Connection: close
     <title>Hello</title>
   </head>
   <body>
-
-    Hello from Flask!
-
+    <p>Hello from Flask!</p>
   </body>
 </html>
 ```
 
-We get back the default language which is `en`.
+We get back the message in the default language which is `en`.
