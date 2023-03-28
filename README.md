@@ -50,12 +50,12 @@ if __name__ == '__main__':
 You will get this output:
 
 ```
-hello in French: 🔴
-hello in Italian: 🔴
+hello in French: 🇺🇸 hello
+hello in Italian: 🇺🇸 hello
 ```
 
-(The `🔴` emoji is used as a strong visual indicator that the translation is
-missing.)
+(The `🇺🇸` emoji is used as a prefix to indicate that the translation is missing
+and the `en` version is being used in its place.)
 
 ### Manage files
 
@@ -184,11 +184,13 @@ And the template which will be rendered:
     <title>Hello</title>
   </head>
   <body>
-{% if name %}
+    <p>
+{%- if name -%}
     {{ hello }}, {{ name }}!
-{% else %}
-    {{ hello_from }} Flask!
-{% endif %}
+{%- else %}
+    {{- hello_from }} Flask!
+{%- endif -%}
+    </p>
   </body>
 </html>
 ```
